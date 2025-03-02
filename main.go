@@ -42,6 +42,15 @@ func end(state GameState) {
 	log.Printf("GAME OVER\n\n")
 }
 
+func contains(coords []Coord, targetX int, targetY int) bool {
+	for _, coord := range coords {
+		if coord.X == targetX && coord.Y == targetY {
+			return true
+		}
+	}
+	return false
+}
+
 // move is called on every turn and returns your next move
 // Valid moves are "up", "down", "left", or "right"
 // See https://docs.battlesnake.com/api/example-move for available data
@@ -71,7 +80,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 		isMoveSafe["up"] = false
 	}
 
-	// TODO: Step 1 - Prevent your Battlesnake from moving out of bounds
+	// Step 1 - Prevent your Battlesnake from moving out of bounds
 	boardWidth := state.Board.Width
 	boardHeight := state.Board.Height
 
@@ -80,17 +89,36 @@ func move(state GameState) BattlesnakeMoveResponse {
 	} else if myHead.X == 0 {
 		isMoveSafe["left"] = false
 	}
-
 	if myHead.Y == boardHeight-1 {
-		isMoveSafe["down"] = false
+		isMoveSafe["up"] = false
 	} else if myHead.Y == 0 {
+		isMoveSafe["down"] = false
+	}
+
+	// Step 2 - Prevent your Battlesnake from colliding with itself
+	myBody := state.You.Body
+
+	// Check above: same x, y-1
+	if contains(myBody, myHead.X, myHead.Y-1) {
 		isMoveSafe["up"] = false
 	}
 
-	// TODO: Step 2 - Prevent your Battlesnake from colliding with itself
-	// mybody := state.You.Body
+	// Check below: same x, y+1
+	if contains(myBody, myHead.X, myHead.Y+1) {
+		isMoveSafe["down"] = false
+	}
 
-	// TODO: Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
+	// Check left: x-1, same y
+	if contains(myBody, myHead.X-1, myHead.Y) {
+		isMoveSafe["left"] = false
+	}
+
+	// Check right: x+1, same y
+	if contains(myBody, myHead.X+1, myHead.Y) {
+		isMoveSafe["right"] = false
+	}
+
+	// Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
 	// opponents := state.Board.Snakes
 
 	// Are there any safe moves left?
@@ -100,6 +128,8 @@ func move(state GameState) BattlesnakeMoveResponse {
 			safeMoves = append(safeMoves, move)
 		}
 	}
+
+	log.Println(safeMoves)
 
 	if len(safeMoves) == 0 {
 		log.Printf("MOVE %d: No safe moves detected! Moving down\n", state.Turn)
